@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IFC.Facturacion.Api\IFC.Facturacion.Api.csproj" />
+    <ProjectReference Include="..\..\src\IFC.Facturacion.Application\IFC.Facturacion.Application.csproj" />
+    <ProjectReference Include="..\..\src\IFC.Facturacion.Domain\IFC.Facturacion.Domain.csproj" />
+    <ProjectReference Include="..\..\src\IFC.Facturacion.Infrastructure\IFC.Facturacion.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Fixtures\Dian\*.xml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\IFC.Facturacion.Infrastructure\Dian\Schemas\V1_9\**\*.xsd"
+          Link="Schemas\V1_9\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\IFC.Facturacion.Infrastructure\Dian\Schemas\V1_9\provenance.json"
+          Link="Schemas\V1_9\provenance.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
