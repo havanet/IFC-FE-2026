@@ -21,30 +21,33 @@ public sealed class PrepararFacturaBorrador
             throw new FacturaBorradorInvalidaException(errores);
         }
 
+        var solicitudValidada = solicitud!;
+        var contextoValidado = contexto!;
+
         // All nullable input fields and collection elements are checked before mapping.
         return new FacturaBorrador
         {
             Id = Guid.NewGuid(),
-            TenantId = contexto!.TenantId,
-            EmisorId = solicitud!.EmisorId!.Value,
-            CreadaPor = contexto.UsuarioId,
+            TenantId = contextoValidado.TenantId,
+            EmisorId = contextoValidado.EmisorId,
+            CreadaPor = contextoValidado.UsuarioId,
             CreadaEnUtc = timeProvider.GetUtcNow(),
-            ClaveIdempotencia = contexto.ClaveIdempotencia,
-            FechaHoraEmision = solicitud.FechaHoraEmision!.Value,
-            TipoOperacionCodigo = solicitud.TipoOperacionCodigo!,
-            MonedaCodigo = solicitud.MonedaCodigo!,
-            Adquirente = MapearAdquirente(solicitud.Adquirente!),
-            CondicionesPago = MapearPago(solicitud.CondicionesPago!),
-            Detalles = Array.AsReadOnly(solicitud.Detalles!.Select(detalle => MapearDetalle(detalle!)).ToArray()),
-            Ajustes = Array.AsReadOnly(solicitud.Ajustes!.Select(ajuste => MapearAjuste(ajuste!)).ToArray()),
-            Anticipos = Array.AsReadOnly(solicitud.Anticipos!.Select(anticipo => new AnticipoFactura
+            ClaveIdempotencia = contextoValidado.ClaveIdempotencia,
+            FechaHoraEmision = solicitudValidada.FechaHoraEmision!.Value,
+            TipoOperacionCodigo = solicitudValidada.TipoOperacionCodigo!,
+            MonedaCodigo = solicitudValidada.MonedaCodigo!,
+            Adquirente = MapearAdquirente(solicitudValidada.Adquirente!),
+            CondicionesPago = MapearPago(solicitudValidada.CondicionesPago!),
+            Detalles = Array.AsReadOnly(solicitudValidada.Detalles!.Select(detalle => MapearDetalle(detalle!)).ToArray()),
+            Ajustes = Array.AsReadOnly(solicitudValidada.Ajustes!.Select(ajuste => MapearAjuste(ajuste!)).ToArray()),
+            Anticipos = Array.AsReadOnly(solicitudValidada.Anticipos!.Select(anticipo => new AnticipoFactura
             {
                 Referencia = anticipo!.Referencia!,
                 Importe = anticipo.Importe!.Value,
                 FechaPago = anticipo.FechaPago
             }).ToArray()),
-            Notas = Array.AsReadOnly(solicitud.Notas!.Select(nota => nota!).ToArray()),
-            ReferenciaExterna = solicitud.ReferenciaExterna
+            Notas = Array.AsReadOnly(solicitudValidada.Notas!.Select(nota => nota!).ToArray()),
+            ReferenciaExterna = solicitudValidada.ReferenciaExterna
         };
     }
 

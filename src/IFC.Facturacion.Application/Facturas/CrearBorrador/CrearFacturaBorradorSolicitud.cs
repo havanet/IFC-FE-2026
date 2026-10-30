@@ -5,7 +5,6 @@ namespace IFC.Facturacion.Application.Facturas.CrearBorrador;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CrearFacturaBorradorSolicitud
 {
-    public Guid? EmisorId { get; init; }
     public DateTimeOffset? FechaHoraEmision { get; init; }
     public string? TipoOperacionCodigo { get; init; }
     public string? MonedaCodigo { get; init; }

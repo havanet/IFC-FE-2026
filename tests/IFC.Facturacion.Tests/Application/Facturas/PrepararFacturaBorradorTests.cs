@@ -21,7 +21,7 @@ public sealed class PrepararFacturaBorradorTests
         Assert.Equal(contexto.UsuarioId, factura.CreadaPor);
         Assert.Equal(contexto.ClaveIdempotencia, factura.ClaveIdempotencia);
         Assert.Equal(Ahora, factura.CreadaEnUtc);
-        Assert.Equal(solicitud.EmisorId, factura.EmisorId);
+        Assert.Equal(contexto.EmisorId, factura.EmisorId);
         Assert.Equal(solicitud.FechaHoraEmision, factura.FechaHoraEmision);
         Assert.Equal(TimeSpan.FromHours(-5), factura.FechaHoraEmision.Offset);
         Assert.Equal("10", factura.TipoOperacionCodigo);
@@ -164,8 +164,12 @@ public sealed class PrepararFacturaBorradorTests
     public void Preparar_DoesNotReuseTenantOrActorBetweenOperations()
     {
         var solicitud = FacturaBorradorTestData.Solicitud();
-        var primera = preparador.Preparar(solicitud, new ContextoCreacionFactura("tenant-a", "actor-a", "clave-a"));
-        var segunda = preparador.Preparar(solicitud, new ContextoCreacionFactura("tenant-b", "actor-b", "clave-b"));
+        var emisor = Guid.Parse("ff6653f8-c959-4f85-99b0-1c9a1d47f463");
+        var otroEmisor = Guid.Parse("36bc99bf-7bf1-4aae-a69d-cc8b6a2734ec");
+        var primera = preparador.Preparar(
+            solicitud, new ContextoCreacionFactura("tenant-a", emisor, "actor-a", "clave-a"));
+        var segunda = preparador.Preparar(
+            solicitud, new ContextoCreacionFactura("tenant-b", otroEmisor, "actor-b", "clave-b"));
 
         Assert.Equal("tenant-a", primera.TenantId);
         Assert.Equal("actor-a", primera.CreadaPor);

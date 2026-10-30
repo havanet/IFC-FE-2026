@@ -26,7 +26,7 @@ public sealed class ValidadorFacturaBorradorTests
 
         foreach (var campo in new[]
                  {
-                     "EmisorId", "FechaHoraEmision", "MonedaCodigo", "TipoOperacionCodigo",
+                     "FechaHoraEmision", "MonedaCodigo", "TipoOperacionCodigo",
                      "Adquirente", "CondicionesPago", "Detalles"
                  })
         {
@@ -53,9 +53,9 @@ public sealed class ValidadorFacturaBorradorTests
     public void Validar_EmptyContextFieldsAreRejected()
     {
         var errores = ValidadorFacturaBorrador.Validar(
-            FacturaBorradorTestData.Solicitud(), new ContextoCreacionFactura("", " ", ""));
+            FacturaBorradorTestData.Solicitud(), new ContextoCreacionFactura("", Guid.Empty, " ", ""));
 
-        Assert.Equal(3, errores.Count);
+        Assert.Equal(4, errores.Count);
         Assert.All(errores, error => Assert.StartsWith("Contexto.", error.Campo));
     }
 

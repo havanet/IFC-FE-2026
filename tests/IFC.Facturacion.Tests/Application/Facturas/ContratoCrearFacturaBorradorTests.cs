@@ -17,7 +17,6 @@ public sealed class ContratoCrearFacturaBorradorTests
         var leida = Assert.IsType<CrearFacturaBorradorSolicitud>(
             JsonSerializer.Deserialize<CrearFacturaBorradorSolicitud>(json, JsonOptions));
 
-        Assert.Equal(solicitud.EmisorId, leida.EmisorId);
         Assert.Equal(solicitud.FechaHoraEmision, leida.FechaHoraEmision);
         Assert.Equal(TimeSpan.FromHours(-5), leida.FechaHoraEmision!.Value.Offset);
         Assert.Equal(solicitud.Detalles![0]!.PrecioUnitario, leida.Detalles![0]!.PrecioUnitario);
@@ -27,6 +26,7 @@ public sealed class ContratoCrearFacturaBorradorTests
     [Theory]
     [InlineData("id")]
     [InlineData("tenantId")]
+    [InlineData("emisorId")]
     [InlineData("creadaPor")]
     [InlineData("creadaEnUtc")]
     [InlineData("claveIdempotencia")]

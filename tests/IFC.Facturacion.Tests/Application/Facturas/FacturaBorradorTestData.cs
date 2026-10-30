@@ -4,11 +4,14 @@ namespace IFC.Facturacion.Tests.Application.Facturas;
 
 internal static class FacturaBorradorTestData
 {
-    public static ContextoCreacionFactura Contexto => new("tenant-pruebas", "usuario-pruebas", "orden-100");
+    public static ContextoCreacionFactura Contexto => new(
+        "tenant-pruebas",
+        Guid.Parse("ff6653f8-c959-4f85-99b0-1c9a1d47f463"),
+        "usuario-pruebas",
+        "orden-100");
 
     public static CrearFacturaBorradorSolicitud Solicitud() => new()
     {
-        EmisorId = Guid.Parse("ff6653f8-c959-4f85-99b0-1c9a1d47f463"),
         FechaHoraEmision = new DateTimeOffset(2026, 10, 27, 21, 0, 0, TimeSpan.FromHours(-5)),
         TipoOperacionCodigo = "10",
         MonedaCodigo = "COP",

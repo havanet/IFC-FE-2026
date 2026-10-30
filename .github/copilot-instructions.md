@@ -15,7 +15,8 @@
 ## Stack acordado
 - API en C# con ASP.NET Core / .NET 10 LTS, destinada a GCP Cloud Run. SDK fijado en global.json.
 - Acceso a PostgreSQL mediante Dapper y Npgsql. NO usar Entity Framework ni sus migraciones.
-- Mantener una parte importante de la logica de datos y de negocio transaccional en funciones y procedimientos almacenados PostgreSQL.
+- Toda operacion de datos y logica transaccional se ejecuta mediante Stored Procedures PostgreSQL. El codigo .NET solo contiene las llamadas a los SP, sus parametros y el mapeo de resultados; no debe contener SQL de negocio.
+- Todos los procedimientos almacenados del proyecto usan el prefijo `USP_` seguido de un nombre descriptivo.
 - Evolucionar la base mediante scripts SQL versionados y automatizables, con registro de version por base.
 - Guardar los scripts de base de datos en src/IFC.Facturacion.Infrastructure/Script, dentro de Infraestructura.
 - Cada procedimiento almacenado (SP) debe tener su propio archivo .sql con su definicion completa, nombrado segun el procedimiento. No agrupar varios SP en un mismo archivo de definiciones.
@@ -26,12 +27,12 @@
 - Cloud Run functions puede incorporarse si hay una necesidad concreta; no fragmentar la aplicacion sin justificacion.
 
 ## Tenants y distribucion de bases
-- Una base PostgreSQL por tenant, con varias bases dentro de una misma instancia Cloud SQL.
+- Una base PostgreSQL independiente por tenant/cliente, con varias bases dentro de una misma instancia Cloud SQL.
 - No crear una instancia por cliente como arquitectura predeterminada.
 - Permitir varias instancias y mantener el mapeo tenant -> instancia -> base en el directorio privado de Firestore.
 - Diez bases por instancia es una referencia inicial de agrupacion, no una garantia ni un limite tecnico de rendimiento. Distribuir segun carga, conexiones, latencia y capacidad.
 - Cloud SQL cobra por recursos y servicios, no una tarifa fija por cada base dentro de la instancia. No prometer precios sin estimacion actual.
-- Distinguir tenant, emisor, usuario y sucursal. Un tenant puede administrar varios emisores; cada emisor mantiene su configuracion fiscal y certificado correspondiente.
+- Para el modelo actual, tenant y emisor representan la misma entidad en la practica: cada tenant corresponde a un emisor y tiene su propia base PostgreSQL. El usuario y la sucursal siguen siendo conceptos separados; la configuracion fiscal y el certificado corresponden a ese emisor.
 - Autorizar al usuario para el tenant antes de resolver la conexion. No aceptar nombres de base ni cadenas de conexion arbitrarias desde el cliente.
 - La interfaz nunca recibe credenciales PostgreSQL ni se conecta directamente a la base.
 - Usar permisos de base restringidos por tenant y controlar los pools Npgsql junto con la concurrencia y el escalado de Cloud Run.
@@ -102,9 +103,10 @@
 - Domain/Facturas contiene el modelo de negocio; Application/Facturas/CrearBorrador contiene los DTO, validacion y preparacion. No usar las clases XML como contrato de creacion.
 - PrepararFacturaBorrador construye una instantanea en memoria, no persiste ni autentica. El contexto tenant/usuario procede del servidor autorizado, nunca del cuerpo JSON; verificar permisos y emisor al integrar la API.
 - El emisor se referencia por EmisorId; su informacion fiscal se obtiene de configuracion propia del tenant, no de datos de emisor enviados por la interfaz.
+- Tenant y emisor tienen una relacion uno a uno en el modelo acordado. El EmisorId procede del contexto autorizado del servidor y no del JSON del cliente.
 - No aceptar numero fiscal, CUFE, estado, totales o importes calculados en el contrato de creacion. Se rechazan propiedades JSON desconocidas.
 - No duplicar el motor de calculos SQL en C#: conservar entradas decimal y dejar Totales, ImporteNeto e importe de impuesto en null mientras no se hayan calculado.
 - Los DTO admiten impuestos porcentuales o por unidad, descuentos/cargos fijos o porcentuales, pagos y anticipos. Las validaciones iniciales son estructurales, no reglas DIAN exhaustivas.
-- Conservar la clave de idempotencia no equivale a deduplicar: la persistencia futura debe hacerlo atomicamente. No exponer este preparador como una creacion persistida.
+- La persistencia debe hacer idempotencia atomica por tenant y clave; una repeticion con el mismo contenido devuelve el borrador existente y con contenido distinto produce conflicto.
 - Documentacion del contrato y limites en src/IFC.Facturacion.Application/Facturas/CrearBorrador/README.md.
-- Validacion del incremento: 74 pruebas nuevas; 84 en total aprobadas, compilacion y publicacion Release sin advertencias ni errores. Persistencia, autorizacion real y calculos PostgreSQL siguen pendientes.
+- Se implementaron casos de uso, un repositorio Dapper que invoca SP y scripts iniciales para persistir/consultar instantaneas JSONB con idempotencia. Aun no hay proveedor concreto de conexiones por tenant, ejecucion verificada contra PostgreSQL, autenticacion/autorizacion real, despliegue SQL automatizado ni calculos fiscales; no exponer endpoints de negocio hasta completar esas integraciones.

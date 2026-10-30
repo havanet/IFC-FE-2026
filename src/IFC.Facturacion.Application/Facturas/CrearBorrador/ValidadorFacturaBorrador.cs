@@ -28,6 +28,10 @@ public sealed class ValidadorFacturaBorrador
         }
 
         Requerido(contexto.TenantId, "Contexto.TenantId");
+        if (contexto.EmisorId == Guid.Empty)
+        {
+            Error("Contexto.EmisorId", "requerido", "Se requiere el emisor autorizado de la operacion.");
+        }
         Requerido(contexto.UsuarioId, "Contexto.UsuarioId");
         Requerido(contexto.ClaveIdempotencia, "Contexto.ClaveIdempotencia");
     }
@@ -40,10 +44,6 @@ public sealed class ValidadorFacturaBorrador
             return;
         }
 
-        if (solicitud.EmisorId is null || solicitud.EmisorId == Guid.Empty)
-        {
-            Error("EmisorId", "requerido", "Se requiere un identificador de emisor no vacio.");
-        }
         if (solicitud.FechaHoraEmision is null || solicitud.FechaHoraEmision == default(DateTimeOffset))
         {
             Error("FechaHoraEmision", "requerido", "Se requiere una fecha y hora de emision.");

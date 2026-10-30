@@ -16,6 +16,7 @@ src/
   IFC.Facturacion.Domain/
     Facturas/
   IFC.Facturacion.Infrastructure/
+    Facturas/
     Dian/
       Schemas/
         V1_9/
@@ -54,8 +55,9 @@ que prueba directamente.
 
 ## Decisiones principales
 
-- Sin Entity Framework. Se usaran Dapper, Npgsql y SQL versionado.
-- Una base PostgreSQL por tenant; varias bases pueden compartir instancia Cloud SQL.
+- Sin Entity Framework. Dapper/Npgsql invoca Stored Procedures PostgreSQL; el codigo .NET no contiene SQL de negocio. Scripts SQL versionados.
+- Una base PostgreSQL por tenant/cliente; para el modelo actual tenant y emisor corresponden uno a uno. Varias bases pueden compartir instancia Cloud SQL.
+- Los Stored Procedures del proyecto usan el prefijo `USP_`.
 - Firebase Authentication identifica al usuario; la API verifica sus permisos.
 - Firestore mantiene membresias y enrutamiento privado. El navegador no recibe
   credenciales ni se conecta a PostgreSQL.
@@ -111,18 +113,26 @@ Domain incluye el modelo de factura borrador, adquirente, detalles, impuestos,
 ajustes, pagos, anticipos y totales. Application incluye el contrato JSON,
 validacion estructural y preparacion de una instantanea de negocio.
 Ver [contrato de factura borrador](src/IFC.Facturacion.Application/Facturas/CrearBorrador/README.md).
-La preparacion no persiste, no calcula totales, no asigna numeracion fiscal y
-no comprueba permisos reales; no se ha expuesto como endpoint.
-No se han implementado ni configurado Firebase, Dapper/Npgsql, PostgreSQL,
-certificados, firma, comunicacion con DIAN, PDF, correo ni tareas.
-Sus paquetes se agregaran al implementar cada integracion.
+La preparacion no calcula totales ni asigna numeracion fiscal. Se agregaron los
+casos de uso, el codigo de repositorio Dapper y los scripts SP para persistir y
+consultar borradores JSONB con idempotencia. Aun no se ha conectado a una base:
+el proveedor real de conexiones por tenant y el despliegue automatizado de
+scripts todavia no estan implementados. Los totales permanecen pendientes; no
+se inventan redondeos ni reglas fiscales.
+No se han implementado ni configurado Firebase, autorizacion real, certificados,
+firma, comunicacion con DIAN, PDF, correo ni tareas. La API no expone endpoints
+de negocio hasta contar con autenticacion, autorizacion y resolucion segura del
+tenant.
 
-Validacion actual: 84 pruebas aprobadas (74 de borradores y 10 de API/XML),
-compilacion Release y publicacion local sin advertencias ni errores.
+Validacion actual: 87 pruebas aprobadas; build Release sin advertencias ni
+errores. La integracion de los SP contra una instancia PostgreSQL no se pudo
+ejecutar porque no hay cliente/servidor PostgreSQL configurado en el entorno.
 Regeneracion de clases XML verificada como reproducible; integridad de los XSD
 comprobada con SHA256.
 No se construyo la imagen porque Docker no esta instalado en el entorno inicial.
 No se han desplegado recursos GCP.
 
-Queda implementar el acceso autorizado por tenant antes de persistir la primera
-factura borrador y resolver las reglas aplicables antes de habilitar su emision.
+Queda implementar la autenticacion/autorizacion Firebase y el enrutamiento
+Firestore hacia la base del tenant antes de exponer la persistencia. Tambien
+deben definirse y probarse en PostgreSQL las reglas de calculo y redondeo antes
+de asignar totales o habilitar la emision.

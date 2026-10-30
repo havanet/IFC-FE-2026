@@ -1,15 +1,16 @@
 # Preparacion de factura borrador
 
-Este incremento define el modelo de negocio, el contrato de entrada y su
-validacion estructural. No implementa persistencia, numeracion, emision ni un
-endpoint HTTP. La API continua exponiendo unicamente su comprobacion de vida.
+Este incremento define el modelo de negocio, el contrato de entrada, su
+validacion estructural y los casos de uso/repositorio para persistir borradores
+mediante SP. No implementa numeracion, emision ni endpoints HTTP. La API
+continua exponiendo unicamente su comprobacion de vida.
 
 ## Responsabilidades
 
 - [CrearFacturaBorradorSolicitud](CrearFacturaBorradorSolicitud.cs): datos
   editables enviados por el cliente, independientes de las clases XML UBL.
-- [ContextoCreacionFactura](ContextoCreacionFactura.cs): tenant, usuario y clave
-  de idempotencia proporcionados por el servidor, fuera del cuerpo JSON.
+- [ContextoCreacionFactura](ContextoCreacionFactura.cs): tenant, emisor, usuario
+  y clave de idempotencia proporcionados por el servidor, fuera del cuerpo JSON.
 - [ValidadorFacturaBorrador](ValidadorFacturaBorrador.cs): devuelve errores con
   campo, codigo y mensaje, incluidos errores en colecciones anidadas.
 - [PrepararFacturaBorrador](PrepararFacturaBorrador.cs): valida y construye una
@@ -17,9 +18,9 @@ endpoint HTTP. La API continua exponiendo unicamente su comprobacion de vida.
 - [FacturaBorrador](../../../IFC.Facturacion.Domain/Facturas/FacturaBorrador.cs):
   modelo independiente de HTTP, XML, Firebase y PostgreSQL.
 
-El emisor se referencia mediante `EmisorId`; no se reciben datos fiscales del
-emisor desde la interfaz. Su configuracion y pertenencia al tenant deben
-consultarse y verificarse en el futuro caso de uso de persistencia.
+Tenant y emisor corresponden uno a uno en el modelo actual. El `EmisorId`
+procede del contexto autorizado del servidor; no se recibe en el cuerpo JSON ni
+se puede elegir otro emisor desde la interfaz.
 
 **El contexto no es un mecanismo de autenticacion ni autorizacion.** Antes de
 invocar la preparacion desde una API real se deben validar el token Firebase,
@@ -31,7 +32,6 @@ Ejemplo de borrador, con datos ficticios; no es una factura lista para emitir:
 
 ```json
 {
-  "emisorId": "ff6653f8-c959-4f85-99b0-1c9a1d47f463",
   "fechaHoraEmision": "2026-10-27T21:00:00-05:00",
   "tipoOperacionCodigo": "10",
   "monedaCodigo": "COP",
@@ -70,12 +70,13 @@ Ejemplo de borrador, con datos ficticios; no es una factura lista para emitir:
 ```
 
 Los contratos rechazan propiedades JSON desconocidas, tambien en objetos
-anidados. No admiten tenant, usuario, ID interno, estado, numero fiscal, CUFE,
-totales ni importes calculados como parte de la solicitud.
+anidados. No admiten tenant, emisor, usuario, ID interno, estado, numero fiscal,
+CUFE, totales ni importes calculados como parte de la solicitud.
 
 ## Reglas iniciales
 
-- Se requiere emisor no vacio, fecha/hora de emision, moneda, tipo de operacion,
+- El contexto autorizado del servidor requiere tenant/emisor y usuario; la
+  solicitud requiere fecha/hora de emision, moneda, tipo de operacion,
   adquirente, condiciones de pago y al menos un detalle.
 - Los numeros de detalle deben ser positivos y no repetirse.
 - Cantidad y cantidad base del precio deben ser positivas; precio no negativo.
@@ -114,14 +115,23 @@ solicitud. No asigna numero fiscal ni CUFE.
 pendientes (`null`), no se presentan ceros como calculos realizados. El modelo
 `TotalesFactura` define los valores que devolvera la logica de base de datos.
 
-Conservar la clave de idempotencia **no implementa deduplicacion**. Cada llamada
-de preparacion produce un candidato con un ID interno nuevo. El futuro SP de
-registro debera resolver atomicamente las repeticiones y los conflictos de
-contenido dentro del tenant y emisor correspondiente.
+`CrearFacturaBorradorCasoUso` prepara y delega la persistencia en
+`IFacturaBorradorRepositorio`; `ObtenerFacturaBorradorCasoUso` limita la consulta
+al tenant autorizado. Los SP `USP_CrearFacturaBorrador` y
+`USP_ObtenerFacturaBorrador` guardan/consultan la instantanea JSONB. El SP de
+creacion resuelve atomicamente las repeticiones por tenant: contenido igual
+devuelve el registro previo y contenido distinto produce conflicto. El
+preparador, por si solo, sigue creando una instantanea nueva y no deduplica.
 
-Siguientes integraciones: autorizacion Firebase/Firestore, consulta de emisor,
-tablas y SP por tenant, Dapper/Npgsql y calculos autoritativos PostgreSQL.
-Posteriormente se mapeara el documento de negocio validado a las clases XML.
+Los SP dejan `Totales`, `ImporteNeto` e importe de impuesto en null. Las reglas
+de calculo y redondeo siguen pendientes; no se presentan importes calculados
+hasta definirlas y probarlas en PostgreSQL.
+
+Siguientes integraciones: autenticacion/autorizacion Firebase/Firestore y
+resolucion segura de la conexion PostgreSQL por tenant. No exponer los casos de
+uso como endpoints hasta completar ese acceso. Despues deben definirse los
+calculos fiscales y su redondeo en PostgreSQL; posteriormente se mapeara el
+documento persistido a las clases XML.
 
 ## Pruebas
 
@@ -131,5 +141,7 @@ dotnet test .\tests\IFC.Facturacion.Tests --configuration Release --filter Fully
 
 Cubren contratos JSON, campos controlados por servidor, datos anidados nulos,
 errores por campo, precision decimal, offset, vencimiento, copia de colecciones
-y propagacion del contexto. No prueban autenticacion real, aislamiento entre
-bases, idempotencia persistente ni validacion DIAN completa.
+y propagacion del contexto. Las pruebas del caso de uso cubren el contexto
+autorizado y la delegacion al repositorio. Aun no hay pruebas de integracion
+contra PostgreSQL; autenticacion real, aislamiento entre bases y validacion DIAN
+completa siguen pendientes.
